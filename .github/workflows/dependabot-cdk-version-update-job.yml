@@ -1,0 +1,41 @@
+name: Dependabot CDK version update workflow
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  output-target-library-name:
+    runs-on: ubuntu-latest
+    if: ${{ github.actor == 'dependabot[bot]' }}
+    outputs:
+      LIBRARY_NAME: ${{ steps.output-library-name.outputs.LIBRARY_NAME }}
+    steps:
+      - name: Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v1.5.0
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+      - name: Output library name
+        id: output-library-name
+        run: echo "LIBRARY_NAME=$DEPENDENCY_NAME" >> "$GITHUB_OUTPUT" # 変数のアウトプット(参照: https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#setting-an-output-parameter)
+        env:
+          DEPENDENCY_NAME: ${{steps.metadata.outputs.dependency-names}} # 対象ライブラリ名の取得(参照: https://github.com/dependabot/fetch-metadata#:~:text=Subsequent%20actions%20will%20have%20access%20to%20the%20following%20outputs%3A)
+  snapshot-test:
+    runs-on: ubuntu-latest
+    needs: output-target-library-name
+    if: ${{ needs.output-target-library-name.outputs.LIBRARY_NAME == 'aws-cdk-lib' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: npm ci
+        run: npm ci
+      - name: CDK snapshot test
+        run: npm test
