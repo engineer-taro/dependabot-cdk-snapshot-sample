@@ -1,5 +1,3 @@
-cdk のアップデートのみ対象とするように修正
-
 ```mermaid
 flowchart TD
   start([ライブラリのアップデート])
